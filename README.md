@@ -2,12 +2,12 @@
 
 ## Description 📃
 
+Social Network API. User has ability to use CRUD method to add "friends" with "thoughts" and "reactions". Essentially giving someone access to see how a Social Network Application can work behind the scenes of all the Front-end work. AKA Socail Media Back-end.
 
 
-## Preview 🖼️
+## Installation requirements
 
-* 
-![Social API]()
+* This code/application requries express and mongoose to run.
 
 ## Links 🖊️
 

@@ -8,21 +8,24 @@ const thoughtSchema = new Schema(
       type: String,
       required: true,
       minlength: 1,
-      maxlength: 280,
+      maxlength: 200,
     },
     createdAt: {
       type: Date,
       default: Date.now,
       get: (timestamp) => dateFormat(timestamp),
     },
+
     username: {
       type: String,
-      required: true,
+      requires: true,
     },
+
     reactions: [reactionSchema],
   },
   {
     toJSON: {
+      virtuals: true,
       getters: true,
     },
     id: false,

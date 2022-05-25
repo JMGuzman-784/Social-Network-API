@@ -1,69 +1,99 @@
-const res = require("express/lib/response");
 const { Thought, User } = require("../models");
 
-module.exports = {
-  // get thoughts
-  getThought(req, res) {
+const controllers = {
+  // GET all thoughts
+  getThoughts(req, res) {
     Thought.find()
-      .then((thoughts) => res.json(thoughts))
-      .catch((err) => res.status(500).json(err));
+      .then((thoughtData) => {
+        res.json(thoughtData);
+      })
+      .catch((err) => {
+        res.status(500).json(err);
+      });
   },
-
-  // get individual thought
-  getOneThought(req, res) {
+  // GET a thought by id
+  getOneThoughts(req, res) {
     Thought.findOne({ _id: req.params.thoughtId })
-      .select("-__v")
       .then((thought) =>
         !thought
-          ? res.status(404).json({ message: "No thought with matching ID" })
+          ? res.status(404).json({ message: "No thought with that id." })
           : res.json(thought)
       )
       .catch((err) => res.status(500).json(err));
   },
-  // create a thought and add id to user
+  // POST to create a new thought (don't forget to push the created thought's _id to the associated user's thoughts array field)
   createThought(req, res) {
     Thought.create(req.body)
       .then((thought) => {
-        res.json(thought);
+        return User.findOneAndUpdate(
+          { _id: req.body.userId },
+          { $push: { thoughts: thought._id } },
+          { new: true }
+        );
       })
+      .then((user) => res.json(user))
       .catch((err) => {
         console.log(err);
         return res.status(500).json(err);
       });
   },
-  // delete a thought by it's id
-  deleteThought(req, res) {
-    Thought.findOneAndDelete({ _id: req.params.thoughtId })
-      .then((thought) => {
-        !thought
-          ? res.status(404).json({ message: "No thought with that ID" })
-          : res.json({ message: "Thought deleted!" });
-        return User.findOneAndUpdate(
-          {
-            thoughts: req.params.thoughtId,
-          },
-          {
-            $pull: { thoughts: req.params.thoughtId },
-          },
-          { new: true }
-        );
-      })
-      .catch((err) => res.status(500).json(err));
-  },
-  // Update a thought
+
+  // PUT to update a thought by its _id
   updateThought(req, res) {
     Thought.findOneAndUpdate(
       { _id: req.params.thoughtId },
       { $set: req.body },
       { runValidators: true, new: true }
     )
-      .then((thought) =>
-        !thought ? res.status(404).json({ message: "No thought with this id!" }) : res.json(thought)
+      .then((newThought) =>
+        !newThought
+          ? res.status(404).json({ message: "No thought with this id." })
+          : res.json(newThought)
       )
       .catch((err) => res.status(500).json(err));
   },
 
-  // create reaction
+  // DELETE to remove a thought by its _id
+  deleteThought(req, res) {
+    Thought.findOneAndDelete({ _id: req.params.thoughtId })
+      .then((thought) =>
+        !thought
+          ? res.status(404).json({ message: "No thought with that ID." })
+          : User.deleteMany({ _id: { $in: thought.user } })
+      )
+      .then(() => res.json({ message: "Thought deleted" }))
+      .catch((err) => res.status(500).json(err));
+  },
 
-  // delete reaction
+  // POST to create a reaction stored in a single thoughts reactions array field
+  createReaction(req, res) {
+    Thought.findOneAndUpdate(
+      { _id: req.params.thoughtId },
+      { $addToSet: { reactions: req.body } },
+      { new: true }
+    )
+      .then((reaction) =>
+        !reaction
+          ? res.status(404).json({ message: "Reaction added." })
+          : res.json(reaction)
+      )
+      .catch((err) => res.status(500).json(err));
+  },
+
+  //  DELETE to pull and remove a reaction by the reaction's reactionId value
+  deleteReaction(req, res) {
+    Thought.findOneAndUpdate(
+      { _id: req.params.thoughtId },
+      { $pull: { reactions: { _id: req.params.reactionId } } },
+      { new: true }
+    )
+      .then((reaction) =>
+        !reaction
+          ? res.status(404).json({ message: "No reaction found with that id." })
+          : res.json(reaction)
+      )
+      .catch((err) => res.status(500).json(err));
+  },
 };
+
+module.exports = controllers;
